@@ -1,84 +1,491 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StarBase Taplist</title>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <style>
-        body {
-            background: #111;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-        }
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
 
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+<title>StarBase Brewing Taplist</title>
 
-        .beer {
-            background: #222;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-        }
+<style>
+  html {
+    color-scheme: light !important;
+    forced-color-adjust: none !important;
+  }
 
-        .beer h2 {
-            margin: 0 0 5px 0;
-        }
+  body {
+    margin: 40px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #eee;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 20%, #050016, #000010 60%, #000008 100%);
+    position: relative;
+  }
 
-        .beer p {
-            margin: 3px 0;
-        }
-    </style>
+  /* ⭐ Fullscreen canvas behind everything */
+  #starfield {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 0;
+  }
+
+  /* ⭐ Content sits above starfield */
+  .content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ⭐ COSMIC LOGO */
+  .cosmic-logo {
+    font-weight: 900;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 64px;
+    letter-spacing: 16px;
+    margin-bottom: 50px;
+    color: #ffffff;
+    text-shadow:
+      0 0 10px #66aaff,
+      0 0 20px #3388ff,
+      0 0 32px #3366ff,
+      0 0 48px #6633ff,
+      0 0 70px #5511ff;
+  }
+
+  .cosmic-logo .sub {
+    display: block;
+    font-size: 0.58em;
+    letter-spacing: 14px;
+    margin-top: 10px;
+    text-shadow:
+      0 0 8px #66aaff,
+      0 0 16px #3388ff,
+      0 0 26px #6633ff;
+  }
+
+  h2 {
+    display: inline-block;
+    background: rgba(240,240,240,0.9);
+    color: #000;
+    padding: 6px 14px;
+    border-radius: 6px;
+    margin: 0 0 20px 0;
+    box-shadow: 0 0 10px rgba(0,0,0,0.35);
+    font-size: 32px;
+  }
+
+  .divider {
+    width: 50%;
+    height: 6px;
+    margin: 90px auto 60px auto;
+    background: linear-gradient(to right, #b8860b, #ffd700, #b8860b);
+    border-radius: 6px;
+    box-shadow:
+      0 0 12px rgba(255, 215, 0, 0.7),
+      0 0 24px rgba(255, 215, 0, 0.5),
+      0 0 36px rgba(255, 215, 0, 0.3);
+  }
+
+  @keyframes neonMoodyFlicker {
+    0%   { opacity: 1;   text-shadow: 0 0 6px #00ff66, 0 0 12px #00ff66; }
+    20%  { opacity: 0.75; text-shadow: 0 0 4px #00ff66; }
+    35%  { opacity: 0.55; text-shadow: 0 0 2px #00ff66; }
+    50%  { opacity: 0.7;  text-shadow: 0 0 4px #00ff66; }
+    70%  { opacity: 1;   text-shadow: 0 0 10px #00ff66, 0 0 20px #00ff66; }
+    100% { opacity: 1;   text-shadow: 0 0 8px #00ff66, 0 0 16px #00ff66; }
+  }
+
+  .neon-green {
+    color: #009933;
+    text-shadow:
+      0 0 6px #00ff66,
+      0 0 12px #00ff66;
+    animation: neonMoodyFlicker 4.5s ease-in-out infinite;
+  }
+
+  .beer {
+    margin: 25px 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    box-shadow:
+      0 0 10px rgba(255, 255, 255, 0.25),
+      inset 0 0 8px rgba(255, 255, 255, 0.25);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+  }
+
+  .beer-icon {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #222;
+    padding: 6px;
+  }
+
+  .beer-text {
+    display: flex;
+    flex-direction: column;
+    width: 55ch;
+  }
+
+  .beer-name {
+    font-size: 30px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .beer-details {
+    font-size: 22px;
+    color: #f5f5f5;
+    font-weight: bold;
+  }
+
+  .beer-notes {
+    font-size: 20px;
+    color: #f5f5f5;
+    font-style: italic;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  #timestamp {
+    margin-top: 30px;
+    font-size: 18px;
+    color: #ccc;
+    text-align: center;
+  }
+
+  #refreshIndicator {
+    text-align: center;
+    font-size: 16px;
+    color: #f1c40f;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+</style>
 </head>
+
 <body>
 
-<h1>StarBase Brewing – Taplist</h1>
+<canvas id="starfield"></canvas>
 
-<div id="taplist">Loading…</div>
+<div class="content">
+  <h1 class="cosmic-logo">
+    STARBASE
+    <span class="sub">BREWING</span>
+  </h1>
+
+  <h2 class="neon-green">NOW POURING · AHORA SIRVIENDO</h2>
+  <div id="liveTaps">Loading…</div>
+
+  <div class="divider"></div>
+
+  <h2>COMING SOON · PRÓXIMAMENTE</h2>
+  <div id="comingSoon">Loading…</div>
+
+  <div id="refreshIndicator">Refreshing…</div>
+  <div id="timestamp"></div>
+</div>
 
 <script>
-    // 👉 Replace this with YOUR Google Sheet ID
-    const sheetID = "YOUR_SHEET_ID_HERE";
+/* ⭐ CINEMATIC SCI-FI STARFIELD WITH SUPERNOVAS + REALISTIC METEORS */
+(function() {
+  const canvas = document.getElementById("starfield");
+  const ctx = canvas.getContext("2d");
 
-    const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json`;
+  let width, height, stars = [];
 
-    fetch(url)
-        .then(res => res.text())
-        .then(text => {
-            const json = JSON.parse(text.substring(47, text.length - 2));
-            const rows = json.table.rows;
+  const layers = [
+    { count: 260, speed: 0.03, size: 1.0,  alpha: 0.5 },  // far
+    { count: 200, speed: 0.06, size: 1.4,  alpha: 0.7 },  // mid
+    { count: 140, speed: 0.10, size: 1.8,  alpha: 1.0 }   // near
+  ];
 
-            const container = document.getElementById("taplist");
-            container.innerHTML = "";
+  const palette = [
+    [220, 230, 255],  // blue‑white
+    [180, 200, 255],  // cool blue
+    [255, 220, 255],  // magenta
+    [200, 255, 255],  // teal‑white
+    [255, 240, 200]   // warm amber
+  ];
 
-            rows.forEach(row => {
-                const name = row.c[0]?.v || "";
-                const style = row.c[1]?.v || "";
-                const abv = row.c[2]?.v || "";
-                const notes = row.c[3]?.v || "";
+  /* ⭐ Meteor state (ultra‑rare, fast, thin, realistic) */
+  let meteors = [];
+  const meteorChancePerFrame = 0.003; // ~1 every ~16s at 60fps (roughly)
 
-                const div = document.createElement("div");
-                div.className = "beer";
+  function spawnMeteor() {
+    // Start slightly off-screen at a random top position
+    const startX = Math.random() * width;
+    const startY = -20;
 
-                div.innerHTML = `
-                    <h2>${name}</h2>
-                    <p><strong>Style:</strong> ${style}</p>
-                    <p><strong>ABV:</strong> ${abv}</p>
-                    <p><strong>Notes:</strong> ${notes}</p>
-                `;
+    // Diagonal down-right, fast
+    const speed = 3 + Math.random() * 2;   // 3–5 px/frame
+    const angle = Math.PI / 3 + (Math.random() - 0.5) * 0.2; // around 60° with slight variation
 
-                container.appendChild(div);
-            });
-        })
-        .catch(err => {
-            document.getElementById("taplist").innerHTML = "Error loading taplist.";
-            console.error(err);
+    meteors.push({
+      x: startX,
+      y: startY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0,
+      maxLife: 25 + Math.random() * 10 // frames
+    });
+  }
+
+  function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    initStars();
+  }
+
+  function initStars() {
+    stars = [];
+    layers.forEach((layer, layerIndex) => {
+      for (let i = 0; i < layer.count; i++) {
+        const band = Math.random();
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          layer: layerIndex,
+          twinklePhase: Math.random() * Math.PI * 2,
+          twinkleSpeed: 0.5 + Math.random() * 1.0,
+          bandBias: band
         });
+      }
+    });
+  }
+
+  function drawMilkyWay() {
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0.2, "rgba(120,120,200,0.0)");
+    gradient.addColorStop(0.4, "rgba(180,160,255,0.20)");
+    gradient.addColorStop(0.5, "rgba(220,180,255,0.32)");
+    gradient.addColorStop(0.6, "rgba(140,100,220,0.18)");
+    gradient.addColorStop(0.8, "rgba(80,80,160,0.0)");
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+  }
+
+  function drawMeteors() {
+    if (Math.random() < meteorChancePerFrame) {
+      spawnMeteor();
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = "round";
+
+    meteors = meteors.filter(m => m.life < m.maxLife);
+
+    meteors.forEach(m => {
+      m.x += m.vx;
+      m.y += m.vy;
+      m.life++;
+
+      const t = m.life / m.maxLife;
+      const alpha = 1 - t; // fade out over life
+
+      const tailLength = 40;
+      const tailX = m.x - m.vx * (tailLength / Math.hypot(m.vx, m.vy));
+      const tailY = m.y - m.vy * (tailLength / Math.hypot(m.vx, m.vy));
+
+      const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+      grad.addColorStop(0, `rgba(230,240,255,${alpha})`);
+      grad.addColorStop(1, `rgba(230,240,255,0)`);
+
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(tailX, tailY);
+      ctx.stroke();
+    });
+
+    ctx.restore();
+  }
+
+  function render(time) {
+    ctx.clearRect(0, 0, width, height);
+
+    const nebulaGrad = ctx.createRadialGradient(
+      width * 0.6, height * 0.2, 0,
+      width * 0.6, height * 0.2, width * 0.7
+    );
+    nebulaGrad.addColorStop(0, "rgba(80,0,150,0.45)");
+    nebulaGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = nebulaGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    drawMilkyWay();
+
+    stars.forEach(star => {
+      const layer = layers[star.layer];
+      const speed = layer.speed;
+
+      star.x -= speed;
+      star.y += speed;
+
+      if (star.x < -50) star.x = width + 50;
+      if (star.y > height + 50) star.y = -50;
+
+      const baseAlpha = layer.alpha * (0.4 + star.bandBias * 0.6);
+      const twinkle = 0.5 + 0.5 * Math.sin(star.twinklePhase + time * 0.001 * star.twinkleSpeed);
+
+      /* ⭐ SUPERNOVA POPS (bigger, 1.9× size) */
+      let supernovaBoost = 1;
+      if (Math.random() < 0.0004) {
+        supernovaBoost = 4 + Math.random() * 3;
+      }
+
+      const alpha = baseAlpha * twinkle * supernovaBoost;
+
+      const c = palette[Math.floor(star.bandBias * palette.length)];
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
+      const sizeBase = layer.size * (0.7 + star.bandBias * 0.8);
+      const size = supernovaBoost > 1 ? sizeBase * 1.9 : sizeBase;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    drawMeteors();
+
+    requestAnimationFrame(render);
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+  requestAnimationFrame(render);
+})();
+
+/* ⭐ TAPLIST LOGIC (unchanged) */
+const sheetID = "1zZ_WGhm7bKx3hN1t4K_9OrmO3qoXFIo9d25tu4GNYW0";
+const liveURL = `https://opensheet.elk.sh/${sheetID}/LiveTaps`;
+const soonURL = `https://opensheet.elk.sh/${sheetID}/ComingSoon`;
+
+function getStyleColor(style) {
+  if (!style) return "#333";
+  const s = style.toLowerCase();
+
+  if (s.includes("neipa") || s.includes("new england")) return "rgba(246,200,138,0.85)";
+  if (s.includes("ipa")) return "rgba(240,169,92,0.85)";
+  if (s.includes("pale")) return "rgba(244,194,106,0.85)";
+  if (s.includes("lager") || s.includes("larger")) return "rgba(247,217,124,0.85)";
+  if (s.includes("pils")) return "rgba(249,231,168,0.85)";
+  if (s.includes("bitter")) return "rgba(217,139,139,0.85)";
+  if (s.includes("porter")) return "rgba(122,90,90,0.85)";
+  if (s.includes("stout")) return "rgba(68,68,68,0.85)";
+  if (s.includes("wheat")) return "rgba(249,231,168,0.85)";
+
+  return "rgba(204,204,204,0.85)";
+}
+
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById("timestamp").innerText =
+    "Last updated: " + now.toLocaleString();
+}
+
+function showRefreshIndicator() {
+  const indicator = document.getElementById("refreshIndicator");
+  indicator.style.opacity = 1;
+  setTimeout(() => indicator.style.opacity = 0, 2000);
+}
+
+function createBeerElement(row, includeTapNumber = false) {
+  const beer = document.createElement("div");
+  beer.className = "beer";
+
+  beer.style.background = getStyleColor(row.Style);
+
+  if (row.IconURL && row.IconURL.trim() !== "") {
+    const icon = document.createElement("img");
+    icon.className = "beer-icon";
+    icon.src = row.IconURL.trim();
+    beer.appendChild(icon);
+  }
+
+  const textWrap = document.createElement("div");
+  textWrap.className = "beer-text";
+
+  const name = document.createElement("div");
+  name.className = "beer-name";
+  name.innerText = includeTapNumber ? `${row.Tap}. ${row.BeerName}` : row.BeerName;
+  textWrap.appendChild(name);
+
+  const style = row.Style?.trim() || "";
+  const abv = row.ABV?.trim() || "";
+  let detailsText = "";
+
+  if (style && abv) detailsText = `${style} · ${abv}%`;
+  else if (style) detailsText = style;
+  else if (abv) detailsText = `${abv}%`;
+
+  if (detailsText) {
+    const details = document.createElement("div");
+    details.className = "beer-details";
+    details.innerText = detailsText;
+    textWrap.appendChild(details);
+  }
+
+  beer.appendChild(textWrap);
+
+  if (row.Notes && row.Notes.trim() !== "") {
+    const notesDiv = document.createElement("div");
+    notesDiv.className = "beer-notes";
+    notesDiv.innerText = row.Notes.trim();
+    beer.appendChild(notesDiv);
+  }
+
+  return beer;
+}
+
+function loadData() {
+  showRefreshIndicator();
+
+  fetch(liveURL)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById("liveTaps");
+      container.innerHTML = "";
+
+      data
+        .filter(row => row.Status && row.Status.trim().toLowerCase() === "on tap")
+        .sort((a, b) => Number(a.Tap) - Number(b.Tap))
+        .forEach(row => container.appendChild(createBeerElement(row, true)));
+    });
+
+  fetch(soonURL)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById("comingSoon");
+      container.innerHTML = "";
+
+      data.forEach(row => container.appendChild(createBeerElement(row, false)));
+    });
+
+  updateTimestamp();
+}
+
+loadData();
+setInterval(loadData, 300000);
 </script>
 
 </body>
