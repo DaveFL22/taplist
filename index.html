@@ -154,6 +154,11 @@
     opacity: 0;
     transition: opacity 0.5s;
   }
+
+  /* Fade animation for refresh - SLOWER */
+  #liveTaps, #comingSoon {
+    transition: opacity 0.6s ease-in-out;
+  }
 </style>
 </head>
 <body>
@@ -179,20 +184,20 @@
   const ctx = canvas.getContext("2d");
   let width, height, stars = [];
   const layers = [
-    { count: 260, speed: 0.03, size: 1.0, alpha: 0.5 }, // far
-    { count: 200, speed: 0.06, size: 1.4, alpha: 0.7 }, // mid
-    { count: 140, speed: 0.10, size: 1.8, alpha: 1.0 } // near
+    { count: 260, speed: 0.03, size: 1.0, alpha: 0.5 },
+    { count: 200, speed: 0.06, size: 1.4, alpha: 0.7 },
+    { count: 140, speed: 0.10, size: 1.8, alpha: 1.0 }
   ];
   const palette = [
-    [220, 230, 255], // blue‑white
-    [180, 200, 255], // cool blue
-    [255, 220, 255], // magenta
-    [200, 255, 255], // teal‑white
-    [255, 240, 200] // warm amber
+    [220, 230, 255],
+    [180, 200, 255],
+    [255, 220, 255],
+    [200, 255, 255],
+    [255, 240, 200]
   ];
-  /* ⭐ Meteor state (ultra‑rare, fast, thin, realistic) */
   let meteors = [];
-  const meteorChancePerFrame = 0.002; // ~1 every ~16s at 60fps (roughly)
+  const meteorChancePerFrame = 0.002;
+
   function spawnMeteor() {
     const startX = Math.random() * width;
     const startY = -20;
@@ -207,11 +212,13 @@
       maxLife: 25 + Math.random() * 10
     });
   }
+
   function resize() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
     initStars();
   }
+
   function initStars() {
     stars = [];
     layers.forEach((layer, layerIndex) => {
@@ -228,6 +235,7 @@
       }
     });
   }
+
   function drawMilkyWay() {
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0.2, "rgba(120,120,200,0.0)");
@@ -241,10 +249,9 @@
     ctx.fillRect(0, 0, width, height);
     ctx.restore();
   }
+
   function drawMeteors() {
-    if (Math.random() < meteorChancePerFrame) {
-      spawnMeteor();
-    }
+    if (Math.random() < meteorChancePerFrame) spawnMeteor();
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.lineWidth = 1.2;
@@ -270,30 +277,28 @@
     });
     ctx.restore();
   }
+
   function render(time) {
     ctx.clearRect(0, 0, width, height);
-    const nebulaGrad = ctx.createRadialGradient(
-      width * 0.6, height * 0.2, 0,
-      width * 0.6, height * 0.2, width * 0.7
-    );
+    const nebulaGrad = ctx.createRadialGradient(width * 0.6, height * 0.2, 0, width * 0.6, height * 0.2, width * 0.7);
     nebulaGrad.addColorStop(0, "rgba(80,0,150,0.45)");
     nebulaGrad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = nebulaGrad;
     ctx.fillRect(0, 0, width, height);
     drawMilkyWay();
+
     stars.forEach(star => {
       const layer = layers[star.layer];
-      const speed = layer.speed;
-      star.x -= speed;
-      star.y += speed;
+      star.x -= layer.speed;
+      star.y += layer.speed;
       if (star.x < -50) star.x = width + 50;
       if (star.y > height + 50) star.y = -50;
+
       const baseAlpha = layer.alpha * (0.4 + star.bandBias * 0.6);
       const twinkle = 0.5 + 0.5 * Math.sin(star.twinklePhase + time * 0.001 * star.twinkleSpeed);
       let supernovaBoost = 1;
-      if (Math.random() < 0.0008) {
-        supernovaBoost = 4 + Math.random() * 3;
-      }
+      if (Math.random() < 0.0008) supernovaBoost = 4 + Math.random() * 3;
+
       const alpha = baseAlpha * twinkle * supernovaBoost;
       const c = palette[Math.floor(star.bandBias * palette.length)];
       ctx.save();
@@ -309,6 +314,7 @@
     drawMeteors();
     requestAnimationFrame(render);
   }
+
   window.addEventListener("resize", resize);
   resize();
   requestAnimationFrame(render);
@@ -317,18 +323,16 @@
 /* ⭐ AUTOMATIC SCALING FOR DIFFERENT MONITOR SIZES + DPI SCALING */
 (function() {
     const content = document.querySelector('.content');
-    const baseWidth = 4500;   // Ideal reference width for your current design
+    const baseWidth = 4500;
 
     function updateScale() {
         const viewportWidth = window.innerWidth;
         const dpr = window.devicePixelRatio || 1;
-
         let scale = viewportWidth / baseWidth;
-        scale = Math.max(0.75, Math.min(scale, 2.2));   // Reasonable limits
+        scale = Math.max(0.75, Math.min(scale, 2.2));
 
         content.style.transform = `scale(${scale})`;
 
-        // Slightly increase body margin on very large scales for better breathing room
         if (scale > 1.4) {
             document.body.style.margin = `${Math.round(40 * scale)}px`;
         } else {
@@ -339,14 +343,13 @@
     window.addEventListener('resize', updateScale);
     window.addEventListener('load', updateScale);
 
-    // Handle devicePixelRatio changes (useful for multi-monitor or scaling changes)
     if (window.matchMedia) {
         const mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
         mql.addEventListener('change', updateScale);
     }
 })();
 
-/* ⭐ TAPLIST LOGIC */
+/* ⭐ TAPLIST LOGIC WITH SLOWER FADE ON REFRESH */
 const sheetID = "1zZ_WGhm7bKx3hN1t4K_9OrmO3qoXFIo9d25tu4GNYW0";
 const liveURL = `https://opensheet.elk.sh/${sheetID}/LiveTaps`;
 const soonURL = `https://opensheet.elk.sh/${sheetID}/ComingSoon`;
@@ -368,14 +371,47 @@ function getStyleColor(style) {
 
 function updateTimestamp() {
   const now = new Date();
-  document.getElementById("timestamp").innerText =
-    "Last updated: " + now.toLocaleString();
+  document.getElementById("timestamp").innerText = "Last updated: " + now.toLocaleString();
 }
 
 function showRefreshIndicator() {
   const indicator = document.getElementById("refreshIndicator");
   indicator.style.opacity = 1;
   setTimeout(() => indicator.style.opacity = 0, 2000);
+}
+
+function fadeOutAndRefresh() {
+  const liveContainer = document.getElementById("liveTaps");
+  const soonContainer = document.getElementById("comingSoon");
+
+  // Fade out
+  liveContainer.style.opacity = "0";
+  soonContainer.style.opacity = "0";
+
+  setTimeout(() => {
+    showRefreshIndicator();
+
+    fetch(liveURL)
+      .then(r => r.json())
+      .then(data => {
+        liveContainer.innerHTML = "";
+        data
+          .filter(row => row.Status && row.Status.trim().toLowerCase() === "on tap")
+          .sort((a, b) => Number(a.Tap) - Number(b.Tap))
+          .forEach(row => liveContainer.appendChild(createBeerElement(row, true)));
+        liveContainer.style.opacity = "1";
+      });
+
+    fetch(soonURL)
+      .then(r => r.json())
+      .then(data => {
+        soonContainer.innerHTML = "";
+        data.forEach(row => soonContainer.appendChild(createBeerElement(row, false)));
+        soonContainer.style.opacity = "1";
+      });
+
+    updateTimestamp();
+  }, 600); // Slower fade (600ms)
 }
 
 function createBeerElement(row, includeTapNumber = false) {
@@ -416,30 +452,35 @@ function createBeerElement(row, includeTapNumber = false) {
   return beer;
 }
 
+// Initial load (no fade)
 function loadData() {
-  showRefreshIndicator();
+  const liveContainer = document.getElementById("liveTaps");
+  const soonContainer = document.getElementById("comingSoon");
+
   fetch(liveURL)
     .then(r => r.json())
     .then(data => {
-      const container = document.getElementById("liveTaps");
-      container.innerHTML = "";
+      liveContainer.innerHTML = "";
       data
         .filter(row => row.Status && row.Status.trim().toLowerCase() === "on tap")
         .sort((a, b) => Number(a.Tap) - Number(b.Tap))
-        .forEach(row => container.appendChild(createBeerElement(row, true)));
+        .forEach(row => liveContainer.appendChild(createBeerElement(row, true)));
+      liveContainer.style.opacity = "1";
     });
+
   fetch(soonURL)
     .then(r => r.json())
     .then(data => {
-      const container = document.getElementById("comingSoon");
-      container.innerHTML = "";
-      data.forEach(row => container.appendChild(createBeerElement(row, false)));
+      soonContainer.innerHTML = "";
+      data.forEach(row => soonContainer.appendChild(createBeerElement(row, false)));
+      soonContainer.style.opacity = "1";
     });
+
   updateTimestamp();
 }
 
 loadData();
-setInterval(loadData, 300000);
+setInterval(fadeOutAndRefresh, 300000);
 </script>
 </body>
 </html>
